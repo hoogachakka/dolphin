@@ -28,6 +28,7 @@
 #include "Core/Host.h"
 #include "Core/MemTools.h"
 #include "Core/Movie.h"
+#include "Core/LUA/Lua.h" //Dragonbane
 #include "Core/NetPlayProto.h"
 #include "Core/PatchEngine.h"
 #include "Core/State.h"
@@ -332,6 +333,8 @@ void EmuThread()
 	DisplayMessage(core_parameter.m_strFilename, 3000);
 
 	Movie::Init();
+	
+	Lua::Init(); //Dragonbane
 
 	HW::Init();
 
@@ -486,6 +489,8 @@ void EmuThread()
 	Movie::Shutdown();
 	PatchEngine::Shutdown();
 
+	Lua::Shutdown(); //Dragonbane
+	
 	s_is_stopping = false;
 
 	if (s_on_stopped_callback)
@@ -632,6 +637,14 @@ void Callback_VideoCopiedToXFB(bool video_update)
 	if (video_update)
 		Common::AtomicIncrement(s_drawn_frame);
 	Movie::FrameUpdate();
+	
+	// === EDITTED PART ===
+	if (Movie::updateMainFrame)
+	{
+		Movie::updateMainFrame = false;
+		Host_UpdateMainFrame();
+	}
+	// === ===
 }
 
 void UpdateTitle()
