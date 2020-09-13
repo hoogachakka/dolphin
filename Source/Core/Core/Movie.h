@@ -57,6 +57,8 @@ extern u64 g_currentFrame, g_totalFrames;
 extern u64 g_currentLagCount;
 extern u64 g_currentInputCount, g_totalInputCount;
 extern std::string g_discChange;
+extern u8* g_movInputs;		// TAStudio - Added by Malleo: g_movInputs and its
+extern u32 g_movInputsLen;	// length are now global so TAStudioFrame can read it
 
 #pragma pack(push,1)
 struct DTMHeader
@@ -178,9 +180,15 @@ std::string GetInputDisplay();
 // Done this way to avoid mixing of core and gui code
 typedef void(*GCManipFunction)(GCPadStatus*, int);
 typedef void(*WiiManipFunction)(u8*, WiimoteEmu::ReportFeatures, int, int, wiimote_key);
+typedef void(*TAStudioManip)(GCPadStatus*); // TAStudio - Added by THC98
+typedef void(*TAStudioReceiver)(GCPadStatus*); // TAStudio - Added by THC98
 
 void SetGCInputManip(GCManipFunction);
 void SetWiiInputManip(WiiManipFunction);
+void SetTAStudioManip(TAStudioManip); // TAStudio - Added by THC98
+void SetTAStudioReceiver(TAStudioReceiver); // TAStudio - Added by THC98
 void CallGCInputManip(GCPadStatus* PadStatus, int controllerID);
 void CallWiiInputManip(u8* core, WiimoteEmu::ReportFeatures rptf, int controllerID, int ext, const wiimote_key key);
+void CallTAStudioManip(GCPadStatus* PadStatus); // TAStudio - Added by THC98
+void CallTAStudioReceiver(GCPadStatus* PadStatus); // TAStudio - Added by THC98
 }

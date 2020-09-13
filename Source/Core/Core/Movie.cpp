@@ -58,6 +58,8 @@ u64 g_currentFrame = 0, g_totalFrames = 0; // VI
 u64 g_currentLagCount = 0;
 static u64 s_totalLagCount = 0; // just stats
 u64 g_currentInputCount = 0, g_totalInputCount = 0; // just stats
+u8* g_movInputs = nullptr;	// TAStudio - Added by Malleo
+u32 g_movInputsLen = 0;		// TAStudio - Added by Malleo
 static u64 s_totalTickCount = 0, s_tickCountAtLastInput = 0; // just stats
 static u64 s_recordingStartTime; // seconds since 1970 that recording started
 static bool s_bSaveConfig = false, s_bSkipIdle = false, s_bDualCore = false, s_bProgressive = false, s_bDSPHLE = false, s_bFastDiscSpeed = false;
@@ -83,6 +85,8 @@ static std::string tmpStateFilename = File::GetUserPath(D_STATESAVES_IDX) + "dtm
 
 static std::string s_InputDisplay[8];
 
+static TAStudioManip tasmfunc = nullptr; // TAStudio - Added by THC98
+static TAStudioReceiver tasrfunc = nullptr; // TAStudio - Added by THC98
 static GCManipFunction gcmfunc = nullptr;
 static WiiManipFunction wiimfunc = nullptr;
 
@@ -887,6 +891,11 @@ void LoadInput(const std::string& filename)
 
 	t_record.ReadArray(&tmpHeader, 1);
 
+	// TAStudio - Edited by THC98: g_movInputs have to be set regardless of ReadOnly state
+	g_movInputsLen = (u32)s_currentByte;
+	g_movInputs = new u8[g_movInputsLen];
+	t_record.ReadArray(g_movInputs, (size_t)g_movInputsLen);
+
 	if (!IsMovieHeader(tmpHeader.filetype))
 	{
 		PanicAlertT("Savestate movie %s is corrupted, movie recording stopping...", filename.c_str());
@@ -940,12 +949,9 @@ void LoadInput(const std::string& filename)
 		else if (s_currentByte > 0 && s_totalBytes > 0)
 		{
 			// verify identical from movie start to the save's current frame
-			u32 len = (u32)s_currentByte;
-			u8* movInput = new u8[len];
-			t_record.ReadArray(movInput, (size_t)len);
-			for (u32 i = 0; i < len; ++i)
+			for (u32 i = 0; i < g_movInputsLen; ++i)
 			{
-				if (movInput[i] != tmpInput[i])
+				if (g_movInputs[i] != tmpInput[i])
 				{
 					// this is a "you did something wrong" alert for the user's benefit.
 					// we'll try to say what's going on in excruciating detail, otherwise the user might not believe us.
@@ -953,7 +959,7 @@ void LoadInput(const std::string& filename)
 					{
 						// TODO: more detail
 						PanicAlertT("Warning: You loaded a save whose movie mismatches on byte %d (0x%X). You should load another save before continuing, or load this state with read-only mode off. Otherwise you'll probably get a desync.", i+256, i+256);
-						memcpy(tmpInput, movInput, s_currentByte);
+						memcpy(tmpInput, g_movInputs, s_currentByte);
 					}
 					else
 					{
@@ -961,7 +967,7 @@ void LoadInput(const std::string& filename)
 						ControllerState curPadState;
 						memcpy(&curPadState, &(tmpInput[frame*8]), 8);
 						ControllerState movPadState;
-						memcpy(&movPadState, &(movInput[frame*8]), 8);
+						memcpy(&movPadState, &(g_movInputs[frame * 8]), 8);
 						PanicAlertT("Warning: You loaded a save whose movie mismatches on frame %d. You should load another save before continuing, or load this state with read-only mode off. Otherwise you'll probably get a desync.\n\n"
 							"More information: The current movie is %d frames long and the savestate's movie is %d frames long.\n\n"
 							"On frame %d, the current movie presses:\n"
@@ -980,7 +986,6 @@ void LoadInput(const std::string& filename)
 					break;
 				}
 			}
-			delete [] movInput;
 		}
 	}
 	t_record.Close();
@@ -1251,6 +1256,16 @@ void SaveRecording(const std::string& filename)
 		Core::DisplayMessage(StringFromFormat("Failed to save %s", filename.c_str()), 2000);
 }
 
+void SetTAStudioManip(TAStudioManip func) // TAStudio - Added by THC98
+{
+	tasmfunc = func;
+}
+
+void SetTAStudioReceiver(TAStudioReceiver func) // TAStudio - Added by THC98
+{
+	tasrfunc = func;
+}
+
 void SetGCInputManip(GCManipFunction func)
 {
 	gcmfunc = func;
@@ -1258,6 +1273,18 @@ void SetGCInputManip(GCManipFunction func)
 void SetWiiInputManip(WiiManipFunction func)
 {
 	wiimfunc = func;
+}
+
+void CallTAStudioManip(GCPadStatus* PadStatus) // TAStudio - Added by THC98
+{
+	if (tasmfunc)
+		(*tasmfunc)(PadStatus);
+}
+
+void CallTAStudioReceiver(GCPadStatus* PadStatus) // TAStudio - Added by THC98
+{
+	if (tasrfunc)
+		(*tasrfunc)(PadStatus);
 }
 
 void CallGCInputManip(GCPadStatus* PadStatus, int controllerID)

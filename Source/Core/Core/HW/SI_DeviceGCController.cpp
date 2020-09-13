@@ -111,6 +111,8 @@ bool CSIDevice_GCController::GetData(u32& _Hi, u32& _Low)
 	memset(&PadStatus, 0, sizeof(PadStatus));
 
 	Pad::GetStatus(ISIDevice::m_iDeviceNumber, &PadStatus);
+
+	Movie::CallTAStudioManip(&PadStatus); // TAStudio - Added by THC98
 	
 	// === ADDED ===
 	Lua::UpdateScripts(&PadStatus);
@@ -125,16 +127,19 @@ bool CSIDevice_GCController::GetData(u32& _Hi, u32& _Low)
 	else if (Movie::IsPlayingInput())
 	{
 		Movie::PlayController(&PadStatus, ISIDevice::m_iDeviceNumber);
+		Movie::CallTAStudioReceiver(&PadStatus); // TAStudio - Added by THC98
 		Movie::InputUpdate();
 	}
 	else if (Movie::IsRecordingInput())
 	{
 		Movie::RecordInput(&PadStatus, ISIDevice::m_iDeviceNumber);
+		Movie::CallTAStudioReceiver(&PadStatus); // TAStudio - Added by THC98
 		Movie::InputUpdate();
 	}
 	else
 	{
 		Movie::CheckPadStatus(&PadStatus, ISIDevice::m_iDeviceNumber);
+		Movie::CallTAStudioReceiver(&PadStatus); // TAStudio - Added by THC98
 		Movie::InputUpdate(); // ADDED
 	}
 
